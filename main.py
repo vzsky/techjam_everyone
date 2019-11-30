@@ -22,7 +22,12 @@ def dis () :
             return '', 424
         r['second_pos'] = robot_positions[robot_id]
 
-    return jsonify(distance=distance(r['first_pos'], r['second_pos'])), 200
+
+    metric = "euclidean"
+    if ('metric' in r) :
+        metric = r['metric']
+
+    return jsonify(distance=distance(r['first_pos'], r['second_pos'], metric)), 200
 
 @app.route('/robot/<robot_id>/position', methods=['GET','PUT'])
 def pos (robot_id) :
