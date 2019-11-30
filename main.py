@@ -1,13 +1,13 @@
 from flask import Flask, request, jsonify
 from http import HTTPStatus
-from calc import distance, cpdis
+from calc import distance, closest_pair
 import os
 import re
 
 app = Flask(__name__)
 
-robot_positions = {0 : {'x' : 1, 'y' : 1}}
-allrobot = [0]
+robot_positions = {}
+allrobot = []
 inf = float('Inf')
 
 @app.route('/distance', methods=['POST'])
@@ -54,7 +54,8 @@ def pos (robot_id) :
         if (robot_id < 1 or robot_id > 999999 or not 'position' in r) :
             return '', 400
         robot_positions[robot_id] = r["position"]
-        allrobot.append(robot_id)
+        if robot_id not in allrobot :
+            allrobot.append(robot_id)
         return '', 204
     if (request.method == 'GET') :
         if robot_id in robot_positions :
@@ -79,27 +80,25 @@ def near () :
     dist = {}
     metric = "euclidean"
     for id in robot_positions : 
-        if (id == 0) :
-            continue
-        d = cpdis(robot_positions[id], r['ref_position'], metric)
+        d = distance(robot_positions[id], r['ref_position'], metric)
         minimum.append(id)
         dist[id] = d
     minimum.sort(key=lambda v: dist[v])
-    if len(robot_positions) == 1 :
+    if len(robot_positions) == 0 :
         return jsonify(robot_ids=[]), 200
     return jsonify(robot_id=sorted(sorted(minimum[:k]), key=lambda v: dist[v])), 200
 
 @app.route('/closestpair', methods=['GET'])
 def closepair() :
-    mn = inf
-    metric = "euclidean"
     if len(allrobot) < 2 :
         return '', 424
-    for i in allrobot :
-        for j in allrobot :
-            if (i == j) : continue
-            mn = min(mn, distance(robot_positions[i], robot_positions[j], metric))
-    return jsonify(distance=mn), 200
+    a = [(robot_positions[d]['x'], robot_positions[d]['y']) for d in allrobot]
+    ax = sorted(a, key=lambda x : x[0])
+    ay = sorted(a, key=lambda x : x[1])
+    print(ax)
+    print(ay)
+    p1, p2, d = closest_pair(ax, ay)
+    return jsonify(distance=d), 200
 
 
 if __name__ == "__main__" :
