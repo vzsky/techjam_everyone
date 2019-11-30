@@ -1,25 +1,34 @@
 from flask import Flask, request, jsonify
 from http import HTTPStatus
-from calc import distance
+from calc import distance, cpdis
 import os
 import re
 
 app = Flask(__name__)
 
 robot_positions = {0 : {'x' : 1, 'y' : 1}}
+inf = float('Inf')
 
 @app.route('/distance', methods=['POST'])
 def dis () :
     r = request.get_json()
+    if (type(r) is not dict) :
+        return '', 400
     if (not 'first_pos' in r or not 'second_pos' in r) :
-        return '', 424
+        return '', 400
+    if type(r['first_pos']) is str and not re.match(r"^robot#([1-9][0-9]*)$", r['first_pos']): 
+        return '', 400
+    if type(r['second_pos']) is str and not re.match(r"^robot#([1-9][0-9]*)$", r['second_pos']):
+        return '', 400
     if type(r['first_pos']) is str and re.match(r"^robot#([1-9][0-9]*)$", r['first_pos']):
-        robot_id = r['first_pos'].split('#')[1]
+        robot_id = int(r['first_pos'].split('#')[1])
+        # print(robot_id)
         if (not robot_id in robot_positions) :
             return '', 424
         r['first_pos'] = robot_positions[robot_id]
-    if type(r['second_pos']) == 'str' and re.match(r"^robot#([1-9][0-9]*)$", r['second_pos']):
-        robot_id = r['first_pos'].split('#')[1]
+    if type(r['second_pos']) is str and re.match(r"^robot#([1-9][0-9]*)$", r['second_pos']):
+        robot_id = int(r['second_pos'].split('#')[1])
+        # print(robot_id)
         if (not robot_id in robot_positions) :
             return '', 424
         r['second_pos'] = robot_positions[robot_id]
@@ -27,12 +36,17 @@ def dis () :
     metric = "euclidean"
     if ('metric' in r) :
         metric = r['metric']
+
+    # print(r['first_pos'])
+    # print(r['second_pos'])
     return jsonify(distance=distance(r['first_pos'], r['second_pos'], metric)), 200
 
 @app.route('/robot/<robot_id>/position', methods=['GET','PUT'])
 def pos (robot_id) :
     robot_id = int(robot_id)
     r = request.get_json()
+    if (type(r) is not dict) :
+        return '', 400
     if (request.method == 'PUT') :
         if (robot_id < 1 or robot_id > 999999 or not 'position' in r) :
             return '', 400
@@ -48,14 +62,16 @@ def pos (robot_id) :
 @app.route('/nearest', methods = ['POST'])
 def near () :
     r = request.get_json()
+    if (type(r) is not dict) :
+        return '', 400
     if not 'ref_position' in r :
         return '', 400 
-    minimum = (1e9, 0)
+    minimum = (inf, 0)
     metric = "euclidean"
     for id in robot_positions : 
         if (id == 0) :
             continue
-        d = distance(robot_positions[id], r['ref_position'], metric)
+        d = cpdis(robot_positions[id], r['ref_position'], metric)
         if (d < minimum[0]) :
             minimum = (d, id)
         if (d == minimum[0]) :
