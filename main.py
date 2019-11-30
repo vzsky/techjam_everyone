@@ -7,6 +7,7 @@ import re
 app = Flask(__name__)
 
 robot_positions = {0 : {'x' : 1, 'y' : 1}}
+allrobot = [0]
 inf = float('Inf')
 
 @app.route('/distance', methods=['POST'])
@@ -36,6 +37,8 @@ def dis () :
     metric = "euclidean"
     if ('metric' in r) :
         metric = r['metric']
+        if metric != 'euclidean' and metric != "manhattan" :
+            return '', 400
 
     # print(r['first_pos'])
     # print(r['second_pos'])
@@ -51,6 +54,7 @@ def pos (robot_id) :
         if (robot_id < 1 or robot_id > 999999 or not 'position' in r) :
             return '', 400
         robot_positions[robot_id] = r["position"]
+        allrobot.append(robot_id)
         return '', 204
     if (request.method == 'GET') :
         if robot_id in robot_positions :
@@ -80,22 +84,23 @@ def near () :
         d = cpdis(robot_positions[id], r['ref_position'], metric)
         minimum.append(id)
         dist[id] = d
-        # if (d < minimum[0]) :
-        #     minimum = (d, id)
-        # if (d == minimum[0]) :
-        #     minimum = (d, min(id, minimum[1]))
     minimum.sort(key=lambda v: dist[v])
-    # print(k)
     if len(robot_positions) == 1 :
         return jsonify(robot_ids=[]), 200
     return jsonify(robot_id=sorted(sorted(minimum[:k]), key=lambda v: dist[v])), 200
 
-# @app.errorhandler(400)
-# def error400 (e) :
-#     return '',400
-# @app.errorhandler(404)
-# def error404 (e) :
-#     return '',404
+@app.route('/closestpair', methods=['GET'])
+def closepair() :
+    mn = inf
+    metric = "euclidean"
+    if len(allrobot) < 2 :
+        return '', 424
+    for i in allrobot :
+        for j in allrobot :
+            if (i == j) : continue
+            mn = min(mn, distance(robot_positions[i], robot_positions[j], metric))
+    return jsonify(distance=mn), 200
+
 
 if __name__ == "__main__" :
     debug = bool(os.getenv('PRIVATE_DEBUG', ''))
