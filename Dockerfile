@@ -4,6 +4,7 @@ COPY req /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 
 COPY main.py /app/webapp.py
+COPY calc.py /app/calc.py
 
 WORKDIR /app
 EXPOSE 8000
