@@ -66,19 +66,29 @@ def near () :
         return '', 400
     if not 'ref_position' in r :
         return '', 400 
-    minimum = (inf, 0)
+    k = 1
+    if ('k' in r) :
+        if (r['k'] < 1) :
+            return '', 400
+        k = r['k']
+    minimum = []
+    dist = {}
     metric = "euclidean"
     for id in robot_positions : 
         if (id == 0) :
             continue
         d = cpdis(robot_positions[id], r['ref_position'], metric)
-        if (d < minimum[0]) :
-            minimum = (d, id)
-        if (d == minimum[0]) :
-            minimum = (d, min(id, minimum[1]))
-    if (minimum[1] == 0) :
+        minimum.append(id)
+        dist[id] = d
+        # if (d < minimum[0]) :
+        #     minimum = (d, id)
+        # if (d == minimum[0]) :
+        #     minimum = (d, min(id, minimum[1]))
+    minimum.sort(key=lambda v: dist[v])
+    # print(k)
+    if len(robot_positions) == 1 :
         return jsonify(robot_ids=[]), 200
-    return jsonify(robot_id=[int(minimum[1])]), 200
+    return jsonify(robot_id=sorted(sorted(minimum[:k]), key=lambda v: dist[v])), 200
 
 # @app.errorhandler(400)
 # def error400 (e) :
