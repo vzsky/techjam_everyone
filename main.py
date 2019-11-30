@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from http import HTTPStatus
-from calc import distance, closest_pair
+from calc import distance, closest_pair, legacy
 import os
 import re
 
@@ -21,6 +21,8 @@ def dis () :
         return '', 400
     if type(r['second_pos']) is str and not re.match(r"^robot#([1-9][0-9]*)$", r['second_pos']):
         return '', 400
+    
+    # robot
     if type(r['first_pos']) is str and re.match(r"^robot#([1-9][0-9]*)$", r['first_pos']):
         robot_id = int(r['first_pos'].split('#')[1])
         # print(robot_id)
@@ -33,6 +35,13 @@ def dis () :
         if (not robot_id in robot_positions) :
             return '', 424
         r['second_pos'] = robot_positions[robot_id]
+
+    #legacy
+    try :
+        r['first_pos'] = legacy(r['first_pos'])
+        r['second_pos'] = legacy(r['second_pos'])
+    except :
+        return '', 400
 
     metric = "euclidean"
     if ('metric' in r) :
@@ -53,6 +62,11 @@ def pos (robot_id) :
     if (request.method == 'PUT') :
         if (robot_id < 1 or robot_id > 999999 or not 'position' in r) :
             return '', 400
+        try :
+            r['position'] = legacy(r['position'])
+        except :
+            return '', 400
+        r['position'] = legacy(r['position'])
         robot_positions[robot_id] = r["position"]
         if robot_id not in allrobot :
             allrobot.append(robot_id)

@@ -73,3 +73,26 @@ def closest_split_pair(p_x, p_y, delta, best_pair):
                 best_pair = p, q
                 best = dst
     return best_pair[0], best_pair[1], best
+
+def legacy (r) :
+
+    if 'north' in r and 'south' in r :
+        raise ("dup")
+    if 'east' in r and 'west' in r :
+        raise ("dup")
+
+    if 'north' in r :
+        r['y'] = r['north']
+    if 'south' in r :
+        r['y'] = -r['south']
+    if 'west' in r :
+        r['x'] = -r['west']
+    if 'east' in r :
+        r['x'] = r['east']
+
+    r.pop('north', None)
+    r.pop('south', None)
+    r.pop('east', None)
+    r.pop('west', None)
+
+    return r
