@@ -6,11 +6,13 @@ import re
 
 app = Flask(__name__)
 
-robot_positions = {'1' : {'x' : 1, 'y' : 1}}
+robot_positions = {0 : {'x' : 1, 'y' : 1}}
 
 @app.route('/distance', methods=['POST'])
 def dis () :
     r = request.get_json()
+    if (not 'first_pos' in r or not 'second_pos' in r) :
+        return '', 424
     if type(r['first_pos']) is str and re.match(r"^robot#([1-9][0-9]*)$", r['first_pos']):
         robot_id = r['first_pos'].split('#')[1]
         if (not robot_id in robot_positions) :
@@ -22,17 +24,18 @@ def dis () :
             return '', 424
         r['second_pos'] = robot_positions[robot_id]
 
-
     metric = "euclidean"
     if ('metric' in r) :
         metric = r['metric']
-
     return jsonify(distance=distance(r['first_pos'], r['second_pos'], metric)), 200
 
 @app.route('/robot/<robot_id>/position', methods=['GET','PUT'])
 def pos (robot_id) :
+    robot_id = int(robot_id)
     r = request.get_json()
     if (request.method == 'PUT') :
+        if (robot_id < 1 or robot_id > 999999 or not 'position' in r) :
+            return '', 400
         robot_positions[robot_id] = r["position"]
         return '', 204
     if (request.method == 'GET') :
@@ -40,6 +43,26 @@ def pos (robot_id) :
             return jsonify(position=robot_positions[robot_id]), 200
         else :
             return '',404
+    raise("error")
+
+@app.route('/nearest', methods = ['POST'])
+def near () :
+    r = request.get_json()
+    if not 'ref_position' in r :
+        return '', 400 
+    minimum = (1e9, 0)
+    metric = "euclidean"
+    for id in robot_positions : 
+        if (id == 0) :
+            continue
+        d = distance(robot_positions[id], r['ref_position'], metric)
+        if (d < minimum[0]) :
+            minimum = (d, id)
+        if (d == minimum[0]) :
+            minimum = (d, min(id, minimum[1]))
+    if (minimum[1] == 0) :
+        return jsonify(robot_ids=[]), 200
+    return jsonify(robot_id=[int(minimum[1])]), 200
 
 # @app.errorhandler(400)
 # def error400 (e) :
